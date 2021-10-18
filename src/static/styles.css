@@ -1,0 +1,36 @@
+body, .form-control, .form-control:focus, nav {
+
+background-image: linear-gradient(rgb(0 0 0 / 30%), rgb(125 122 122 / 50%)),
+                  url("image.jpg") ;
+background-repeat: no-repeat;
+background-position: center;
+background-attachment: fixed;
+background-size: cover;
+color: #e8e7e7;
+}
+
+p {
+
+    font-weight:500;
+    font-size: 15px;
+}
+
+form {
+    margin: 20px;
+    font-size: 14px;
+}
+
+
+.form-switch .form-check-input {
+  background-color: gray;
+}
+
+img {
+  background: transparent;
+}
+
+p, a, a:link, a:hover; a:visited {
+    font-weight:500;
+    font-size: 15px;
+    color: #e8e7e7;
+}

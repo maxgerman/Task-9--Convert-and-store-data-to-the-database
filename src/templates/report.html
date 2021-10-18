@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}
+    Report of Monaco F1
+{% endblock title %}
+{% block content %}
+
+<form action="{{url_for('common_report')}}" method="POST">
+    <div class="form-check form-switch">
+        <input name="desc_switch" class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" onclick="this.form.submit()"
+            {% if session['report_desc_switch'] == True %}
+            checked
+            {% endif %}
+        >
+        <label class="form-check-label" for="flexSwitchCheckChecked">descending order</label>
+    </div>
+</form>
+    {% if lines %}
+        {% for line in lines %}
+            <p>
+            {{ line }}
+            </p>
+        {% endfor %}
+    {% else %}
+        <h5>Empty report!</h5>
+    {% endif %}
+{% endblock content %}

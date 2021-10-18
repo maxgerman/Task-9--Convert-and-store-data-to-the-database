@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}
+    Drivers
+{% endblock title %}
+{% block content %}
+
+    {% if drivers|length == 0 %}
+        <b>Driver not found</b>
+    {% endif %}
+
+    {% if drivers|length > 1 %}
+    <form action="" method="POST">
+        <div class="form-check form-switch">
+            <input name="desc_switch" class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" onclick="this.form.submit()"
+                {% if session['driver_desc_switch'] == True %}
+                checked
+                {% endif %}
+            >
+            <label class="form-check-label" for="flexSwitchCheckChecked">descending order</label>
+        </div>
+    </form>
+    {% endif %}
+
+    {% for driver in drivers %}
+        <p>
+            <a href="{{ url_for('list_drivers', driver_id=driver.abbr) }}" class="link-light">
+                {{ driver.name }} - {{ driver.abbr }}
+            </a>
+        </p>
+    {% endfor %}
+
+    {% autoescape false %}
+    {% if drivers|length == 1 and driver_info %}
+    <div class = "driver_info">
+        {{ driver_info|replace('\n', '<br>') }}
+    </div>
+    {% endif %}
+    {% endautoescape %}
+
+{% endblock content %}
+
