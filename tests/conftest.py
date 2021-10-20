@@ -1,8 +1,9 @@
+import sys
 import pytest
 from contextlib import contextmanager
 from flask import template_rendered
 
-from drivers import Driver
+from src.drivers import Driver
 from src.app import app
 
 
@@ -12,6 +13,8 @@ ABBR_FILE = 'abbreviations.txt'
 START_LOG_FILE = 'start.log'
 END_LOG_FILE = 'end.log'
 
+print(__name__)
+print('***SYS.PATH', sys.path)
 
 @pytest.fixture
 def client():
