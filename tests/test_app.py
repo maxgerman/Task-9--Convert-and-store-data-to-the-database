@@ -11,7 +11,7 @@ def test_base_template(client):
 
 
 def test_report_render(build_report, client):
-    """Test that data file are parsed and report is rendered"""
+    """Test that data files are parsed and report is rendered"""
     response = client.get('/report')
     assert b'Pierre Gasly' in response.data and b'SCUDERIA TORO ROSSO HONDA' in response.data
 

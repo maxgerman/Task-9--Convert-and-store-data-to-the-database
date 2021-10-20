@@ -2,7 +2,7 @@ import pytest
 from contextlib import contextmanager
 from flask import template_rendered
 
-from src.drivers import Driver
+from drivers import Driver
 from src.app import app
 
 
@@ -23,7 +23,7 @@ def client():
 @pytest.fixture
 def build_report():
     """Build report for rendering pages and APIs before testing"""
-    Driver.build_report(data_path=DATA_PATH)
+    return Driver.build_report(data_path=DATA_PATH)
 
 
 @contextmanager

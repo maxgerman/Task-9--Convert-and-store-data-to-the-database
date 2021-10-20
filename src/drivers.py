@@ -9,7 +9,7 @@ END_LOG_FILE = 'end.log'
 
 class Driver:
     """
-        A class to represent a driver.
+    A class to represent a driver.
 
         Attributes
         ----------

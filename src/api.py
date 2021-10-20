@@ -3,7 +3,7 @@ from flask_restful import Resource, Api
 from flask_restful.representations.json import output_json
 import xml.etree.ElementTree as ET
 
-from src.drivers import Driver
+from drivers import Driver
 
 
 class CustomApi(Api):

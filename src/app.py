@@ -2,9 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from flasgger import Swagger
 from wikipedia import wikipedia
 
-from src.drivers import Driver
-from src.utils import wiki
-from src.api import CustomApi, DriverApi, DriversListApi, ReportApi
+from drivers import Driver
+from utils import wiki
+from api import CustomApi, DriverApi, DriversListApi, ReportApi
+
+DATABASE = 'racing.db'
 
 app = Flask(__name__)
 app.secret_key = 'dev'
