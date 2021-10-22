@@ -1,12 +1,14 @@
+import argparse
+import os.path
+
 from flask import Flask, render_template, request, redirect, url_for, session
 from flasgger import Swagger
 from wikipedia import wikipedia
 
-from src.drivers import Driver
-from src.utils import wiki
-from src.api import CustomApi, DriverApi, DriversListApi, ReportApi
-
-DATABASE = 'racing.db'
+from drivers import Driver
+from utils import wiki
+from api import CustomApi, DriverApi, DriversListApi, ReportApi
+import database as database
 
 app = Flask(__name__)
 app.secret_key = 'dev'
@@ -84,6 +86,16 @@ api.add_resource(DriversListApi, '/api/v1/drivers/')
 api.add_resource(DriverApi, '/api/v1/drivers/<driver_id>/')
 api.add_resource(ReportApi, '/api/v1/report/')
 
+parser = argparse.ArgumentParser('Drivers statistics and reports')
+parser.add_argument('-r', '--rebuild', action='store_true', help='Rebuild drivers database from data files')
+parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
+
 if __name__ == '__main__':
-    Driver.build_report()
+    args = parser.parse_args()
+    if args.rebuild or not os.path.exists(database.db.database):
+        Driver.build_report()
+        database.delete_old_db_file(verbose=args.verbose)
+        database.create_db()
+        Driver.save_teams_to_db(db=database.db, team_table=database.Team, verbose=args.verbose)
+        Driver.save_drivers_to_db(db=database.db, driver_table=database.Driver, team_table=database.Team, verbose=args.verbose)
     app.run()

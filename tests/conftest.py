@@ -16,6 +16,7 @@ END_LOG_FILE = 'end.log'
 print(__name__)
 print('***SYS.PATH', sys.path)
 
+
 @pytest.fixture
 def client():
     """Client used for testing"""

@@ -1,5 +1,9 @@
 import os
+import sys
 import datetime as dt
+import sqlite3
+
+import peewee
 
 DATA_PATH = '../data'
 ABBR_FILE = 'abbreviations.txt'
@@ -178,3 +182,57 @@ class Driver:
             'stop_time': self.stop_time.strftime('%H:%M:%S.%f')[:-3],
             'best_lap_time': str(self.best_lap)[:-3],
         }
+
+    @staticmethod
+    def save_teams_to_db(db, team_table: peewee.Model, verbose=False):
+        """Save team names to a dedicated teams table"""
+        if not Driver._driver_list:
+            raise ValueError('Nothing to save to db. First parse the datafiles.')
+
+        print('Rebuilding database...')
+        db.connect()
+        # save unique teams first
+        for d in Driver._driver_list:
+            try:
+                if verbose:
+                    print(f'Saving team {d.team}...')
+                team_table.create(name=d.team).save()
+            except peewee.IntegrityError:
+                if verbose:
+                    print(f'Team {d.team} is already in db')
+        db.close()
+        if verbose:
+            print(f'{team_table.select().count()} teams saved to database.')
+
+    @staticmethod
+    def save_drivers_to_db(db, driver_table: peewee.Model, team_table: peewee.Model, verbose=False):
+        """Save parsed drivers' detail to database and clean in-memory list of drivers.
+
+        Teams table must be populated beforehand"""
+
+        if not Driver._driver_list:
+            raise ValueError('Nothing to save to db. First parse the datafiles.')
+        if not team_table.select().count() > 0:
+            raise ValueError('Team table must be populated before Driver table')
+
+        db.connect(reuse_if_open=True)
+        for d in Driver._driver_list:
+            try:
+                if verbose:
+                    print(f'Saving driver details of {d.name}...')
+                driver_table.create(name=d.name,
+                                    abbr=d.abbr,
+                                    team=team_table.get(team_table.name == d.team),
+                                    start_time=d.start_time,
+                                    stop_time=d.stop_time,
+                                    best_lap=d.best_lap
+                                    ).save()
+                if verbose:
+                    print(f'Driver details of {d.name} saved to database')
+            except peewee.IntegrityError:
+                print(f'Error during saving driver {d.name} to db')
+            finally:
+                db.close()
+        Driver._driver_list = []
+        if verbose:
+            print(f'{driver_table.select().count()} drivers saved to database')
