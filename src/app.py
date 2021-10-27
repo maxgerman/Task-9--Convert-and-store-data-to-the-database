@@ -5,10 +5,10 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from flasgger import Swagger
 from wikipedia import wikipedia
 
-from drivers import Driver
-from utils import wiki
-from api import CustomApi, DriverApi, DriversListApi, ReportApi
-import database as database
+from src.drivers import Driver
+from src.utils import wiki
+from src.api import CustomApi, DriverApi, DriversListApi, ReportApi
+import src.database as database
 
 app = Flask(__name__)
 app.secret_key = 'dev'
@@ -37,29 +37,29 @@ def common_report() -> "Response":
             session['report_desc_switch'] = False
             return redirect(url_for('common_report'))
 
-    lines = Driver.print_report(asc=asc_order).split('\n') if Driver.print_report() else []
+    lines = Driver.print_report(asc=asc_order) if Driver.print_report() else []
     return render_template('report.html', lines=lines)
 
 
 @app.route('/drivers', methods=['GET', 'POST'])
 def list_drivers() -> "Response":
-    """Show ordered driver list as 'name - abbreviation' """
+    """Show ordered driver list or a specific driver """
     if request.method == 'POST':
-        if request.form.get('desc_switch'):
-            session['driver_desc_switch'] = True
-            return redirect(url_for('list_drivers', order='desc'))
-        else:
-            session['driver_desc_switch'] = False
+        session['driver_desc_switch'] = request.form.get('desc_switch', False, bool)
+        if not session['driver_desc_switch']:
             return redirect(url_for('list_drivers'))
+        else:
+            return redirect(url_for('list_drivers', order='desc'))
 
     driver_id = request.args.get('driver_id')
     driver_info = ''
     if driver_id:
         drivers = Driver.get_by_id(driver_id)
-        try:
-            driver_info = wiki(drivers[0].name)
-        except (TypeError, IndexError, wikipedia.PageError):
-            driver_info = None
+        if drivers is not None:
+            try:
+                driver_info = wiki(drivers[0].name)
+            except (TypeError, IndexError, wikipedia.PageError):
+                driver_info = None
     else:
         asc_order = False if request.args.get('order') == 'desc' else True
         session['driver_desc_switch'] = not asc_order
@@ -82,6 +82,19 @@ def internal_error(error):
     return render_template('base.html', context=500)
 
 
+@app.before_request
+def before_request():
+    """Open connection to db before any request. From Peewee docs"""
+    database.db.connect()
+
+
+@app.teardown_request
+def _db_close(exc):
+    """Close connection to db after request. From Peewee docs"""
+    if not database.db.is_closed():
+        database.db.close()
+
+
 api.add_resource(DriversListApi, '/api/v1/drivers/')
 api.add_resource(DriverApi, '/api/v1/drivers/<driver_id>/')
 api.add_resource(ReportApi, '/api/v1/report/')
@@ -95,7 +108,16 @@ if __name__ == '__main__':
     if args.rebuild or not os.path.exists(database.db.database):
         Driver.build_report()
         database.delete_old_db_file(verbose=args.verbose)
-        database.create_db()
+        database.create_db_tables()
         Driver.save_teams_to_db(db=database.db, team_table=database.Team, verbose=args.verbose)
-        Driver.save_drivers_to_db(db=database.db, driver_table=database.Driver, team_table=database.Team, verbose=args.verbose)
+        Driver.save_drivers_to_db(
+            db=database.db, driver_table=database.Driver, team_table=database.Team, verbose=args.verbose)
+
+    # q = database.Driver.get_or_none(database.Driver.name.contains('ham'))
+    # for d in q:
+    #     print(d.name, d.team.name, d.best_lap)
+    # print(q.name)
+    # print(dir(q))
+    # print(type(q))
+
     app.run()

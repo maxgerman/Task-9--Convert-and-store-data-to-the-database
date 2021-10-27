@@ -1,9 +1,7 @@
 import os
-import sys
 import datetime as dt
-import sqlite3
-
 import peewee
+import src.database as database
 
 DATA_PATH = '../data'
 ABBR_FILE = 'abbreviations.txt'
@@ -67,8 +65,9 @@ class Driver:
     def __repr__(self):
         return f'Driver ({self.__dict__})'
 
-    def statistics(self) -> str:
-        return '{:<20} | {:<25} | {}'.format(self.name, self.team, str(self.best_lap)[:-3])
+    @staticmethod
+    def statistics(query_set) -> str:
+        return '{:<20} | {:<25} | {}'.format(query_set.name, query_set.team.name, query_set.best_lap[:-3])
 
     @staticmethod
     def _drivers_from_abbr(data_path: str = DATA_PATH, abbr_file=ABBR_FILE) -> list:
@@ -125,7 +124,7 @@ class Driver:
         return drivers
 
     @staticmethod
-    def print_report(asc: bool = True, driver_query: str = None) -> str:
+    def print_report(asc: bool = True, driver_query: str = None) -> list:
         """
         Pretty print the report of drivers statistics.
         Sorted by best lap time.
@@ -138,39 +137,57 @@ class Driver:
         driver_query - if set, print the report of this only driver
         """
 
-        if not Driver._driver_list:
-            return ''
-
-        if driver_query:
-            for d in Driver._driver_list:
-                if driver_query.lower() in d.name.lower() or driver_query.lower() in d.abbr.lower():
-                    return d.statistics()
-            else:
-                return 'Driver not found'
+        drivers_qs = database.Driver.select().join(database.Team).order_by(database.Driver.best_lap)
+        res_table = ['{:2d}. '.format(i + 1) + Driver.statistics(driver) for i, driver in enumerate(drivers_qs)]
+        if asc:
+            res_table.insert(15, '-' * 60)
         else:
-            sorted_drivers = sorted(Driver._driver_list, key=lambda dr: dr.best_lap)
-            res_table = ['{:2d}. '.format(i + 1) + driver.statistics() for i, driver in enumerate(sorted_drivers)]
-            if asc:
-                res_table.insert(15, '-' * 60)
-            else:
-                res_table.reverse()
-            report = '\n'.join(res_table)
-            return report
+            res_table.reverse()
+        return res_table
+
+    @staticmethod
+    def create_driver_from_queryset(driver_query_set):
+        return Driver(abbr=driver_query_set.abbr,
+                      name=driver_query_set.name,
+                      team=driver_query_set.team.name,
+                      start_time=driver_query_set.start_time,
+                      stop_time=driver_query_set.stop_time,
+                      best_lap=driver_query_set.best_lap,
+                      )
 
     @staticmethod
     def all(asc=True) -> list:
-        """Return the list of drivers in requested order"""
-        Driver._driver_list.sort(key=lambda d: d.name, reverse=not asc)
-        return Driver._driver_list
+        """Return the list of drivers in asc/desc order"""
+        # Driver._driver_list.sort(key=lambda d: d.name, reverse=not asc)
+        # return Driver._driver_list
+        driver_list = []
+        if asc:
+            query = database.Driver.select().join(database.Team).order_by(database.Driver.name)
+        else:
+            query = database.Driver.select().join(database.Team).order_by(database.Driver.name.desc())
+
+        for d in query:
+            driver_obj = Driver.create_driver_from_queryset(d)
+            driver_list.append(driver_obj)
+        return driver_list
 
     @staticmethod
     def get_by_id(driver_id) -> list:
         """Return the list with driver object by id or name. Return empty list if not found"""
-        for d in Driver._driver_list:
-            if driver_id.lower() in d.name.lower() or driver_id.lower() in d.abbr.lower():
-                return [d]
-        else:
+
+        # for d in Driver._driver_list:
+        #     if driver_id.lower() in d.name.lower() or driver_id.lower() in d.abbr.lower():
+        #         return [d]
+        # else:
+        #     return []
+        try:
+            driver_qs = database.Driver.select().join(database.Team).where(
+                database.Driver.abbr.contains(driver_id) | database.Driver.name.contains(driver_id)
+            ).get()
+            driver = Driver.create_driver_from_queryset(driver_qs)
+        except peewee.DoesNotExist:
             return []
+        return [driver]
 
     def driver_info_dictionary(self):
         """Return the driver info as a dictionary. Used for api"""
@@ -178,9 +195,9 @@ class Driver:
             'name': self.name,
             'abbr': self.abbr,
             'team': self.team,
-            'start_time': self.start_time.strftime('%H:%M:%S.%f')[:-3],
-            'stop_time': self.stop_time.strftime('%H:%M:%S.%f')[:-3],
-            'best_lap_time': str(self.best_lap)[:-3],
+            'start_time': self.start_time.split()[1][:-3],
+            'stop_time': self.stop_time.split()[1][:-3],
+            'best_lap_time': self.best_lap[:-3],
         }
 
     @staticmethod

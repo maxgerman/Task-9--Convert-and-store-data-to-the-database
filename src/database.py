@@ -1,24 +1,11 @@
 import os
 import sys
 import peewee
-from app import app
 
 DATABASE = 'racing.db'
 
 db = peewee.SqliteDatabase(DATABASE)
-
-
-
-
-@app.before_request
-def before_request():
-    db.connect()
-
-
-@app.after_request
-def after_request(response):
-    db.close()
-    return response
+print('imported db module!!')
 
 
 class BaseModel(peewee.Model):
@@ -39,18 +26,18 @@ class Driver(BaseModel):
     best_lap = peewee.CharField()
 
 
-def create_db(filename=DATABASE, db=db):
+def create_db_tables(filename=DATABASE, db=db):
     if os.path.exists(filename):
         raise SystemExit('Error. Database file already exists. Use -r to rebuild database')
     with db:
-        db.create_tables([Driver, Team])
+        db.create_tables([Team, Driver])
 
 
 def delete_old_db_file(filename=DATABASE, verbose=False):
     if os.path.exists(db.database):
         if not input('Delete old version file: ' + os.path.abspath(db.database) + '\n(y/n)? \n') == 'y':
             print('Exiting')
-            sys.exit(1)
+            sys.exit(0)
         else:
             try:
                 os.remove(db.database)

@@ -3,18 +3,18 @@ import pytest
 from contextlib import contextmanager
 from flask import template_rendered
 
+import src.database
 from src.drivers import Driver
 from src.app import app
+import src.database as database
 
+print('launched conftest!')
 
 # test data files
 DATA_PATH = 'test_data'
 ABBR_FILE = 'abbreviations.txt'
 START_LOG_FILE = 'start.log'
 END_LOG_FILE = 'end.log'
-
-print(__name__)
-print('***SYS.PATH', sys.path)
 
 
 @pytest.fixture
@@ -42,3 +42,13 @@ def captured_templates(app):
         yield recorded
     finally:
         template_rendered.disconnect(record, app)
+
+
+@pytest.fixture()
+def init_database():
+    # database.db.bind([src.database.Team, src.database.Driver])
+    # print(database.db.create_tables([src.database.Team, src.database.Driver]))
+    database.db.connect(reuse_if_open=True)
+    # database.db.get_tables()
+    # for d in database.Driver.select():
+    #     print(d.name)

@@ -42,10 +42,9 @@ def test_build_report():
         assert d.start_time < d.stop_time
 
 
-def test_all():
+def test_all(init_database):
     """Test that Driver.all() method returns the list of all drivers"""
-    Driver.build_report(data_path=DATA_PATH)
-    assert len(Driver.all()) == 19
+    print('!return value = ', Driver.all())
     for d in Driver.all():
         assert isinstance(d, Driver)
         assert d.name is not None
