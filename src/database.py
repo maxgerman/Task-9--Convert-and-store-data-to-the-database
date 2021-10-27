@@ -5,7 +5,8 @@ import peewee
 DATABASE = 'racing.db'
 
 db = peewee.SqliteDatabase(DATABASE)
-print('imported db module!!')
+print('imported db module!!', f'db path = {db.database}')
+print('file exists = ', os.path.exists(db.database))
 
 
 class BaseModel(peewee.Model):

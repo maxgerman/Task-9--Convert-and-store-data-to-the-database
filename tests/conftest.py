@@ -6,7 +6,7 @@ from flask import template_rendered
 import src.database
 from src.drivers import Driver
 from src.app import app
-import src.database as database
+# import src.database as database
 
 print('launched conftest!')
 
@@ -44,11 +44,11 @@ def captured_templates(app):
         template_rendered.disconnect(record, app)
 
 
-@pytest.fixture()
-def init_database():
-    # database.db.bind([src.database.Team, src.database.Driver])
-    # print(database.db.create_tables([src.database.Team, src.database.Driver]))
-    database.db.connect(reuse_if_open=True)
-    # database.db.get_tables()
-    # for d in database.Driver.select():
-    #     print(d.name)
+# @pytest.fixture()
+# def init_database():
+#     # database.db.bind([src.database.Team, src.database.Driver])
+#     # print(database.db.create_tables([src.database.Team, src.database.Driver]))
+#     database.db.connect(reuse_if_open=True)
+#     # database.db.get_tables()
+#     # for d in database.Driver.select():
+#     #     print(d.name)
