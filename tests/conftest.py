@@ -1,20 +1,25 @@
-import sys
+import pathlib
+# import logging
 import pytest
 from contextlib import contextmanager
 from flask import template_rendered
+import peewee
 
-import src.database
 from src.drivers import Driver
 from src.app import app
-# import src.database as database
-
-print('launched conftest!')
+import src.database as database
 
 # test data files
 DATA_PATH = 'test_data'
 ABBR_FILE = 'abbreviations.txt'
 START_LOG_FILE = 'start.log'
 END_LOG_FILE = 'end.log'
+TEST_DB = pathlib.Path(DATA_PATH) / 'test_racing.db'
+
+
+# logger = logging.getLogger('peewee')
+# logger.addHandler(logging.StreamHandler())
+# logger.setLevel(logging.DEBUG)
 
 
 @pytest.fixture
@@ -37,6 +42,7 @@ def captured_templates(app):
 
     def record(sender, template, context, **extra):
         recorded.append((template, context))
+
     template_rendered.connect(record, app)
     try:
         yield recorded
@@ -44,11 +50,23 @@ def captured_templates(app):
         template_rendered.disconnect(record, app)
 
 
-# @pytest.fixture()
-# def init_database():
-#     # database.db.bind([src.database.Team, src.database.Driver])
-#     # print(database.db.create_tables([src.database.Team, src.database.Driver]))
-#     database.db.connect(reuse_if_open=True)
-#     # database.db.get_tables()
-#     # for d in database.Driver.select():
-#     #     print(d.name)
+@pytest.fixture
+def test_db_ctx():
+    """Bind all models queries to test db (tests/test_racing.db) instead of the main one"""
+    db = peewee.SqliteDatabase(TEST_DB)
+    ctx = db.bind_ctx([database.Team, database.Driver])
+    db.connect(reuse_if_open=True)
+    yield ctx
+    db.close()
+
+
+@pytest.fixture
+def empty_db():
+    """Create in-memory db and bind existing models to it"""
+    db = peewee.SqliteDatabase(':memory:')
+    models = [database.Team, database.Driver]
+    db.bind(models)
+    db.create_tables(models)
+    db.connect(reuse_if_open=True)
+    yield db
+    db.close()

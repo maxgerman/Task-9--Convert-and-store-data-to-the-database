@@ -71,6 +71,7 @@ def test_session_drivers_order_switch(build_report, client):
 
 
 def test_drivers_context(build_report, client):
+    """Test context passed to drivers template"""
     with captured_templates(app) as templates:
         response = client.get('/drivers')
         template, context = templates[0]
@@ -80,6 +81,7 @@ def test_drivers_context(build_report, client):
 
 
 def test_report_context(build_report, client):
+    """Test context passed to report template"""
     with captured_templates(app) as templates:
         response = client.get('/report')
         template, context = templates[0]

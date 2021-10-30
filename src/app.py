@@ -1,6 +1,13 @@
+"""
+The main module to run the app.
+
+Contains Flask views, registers API endpoints, swagger and parses CLI.
+"""
+
 import argparse
 import os.path
 
+import werkzeug
 from flask import Flask, render_template, request, redirect, url_for, session
 from flasgger import Swagger
 from wikipedia import wikipedia
@@ -73,23 +80,23 @@ def home() -> "Response":
 
 
 @app.errorhandler(404)
-def page_not_found(error):
+def page_not_found(error: werkzeug.exceptions) -> 'Response':
     return render_template('base.html', error=404)
 
 
 @app.errorhandler(500)
-def internal_error(error):
+def internal_error(error: werkzeug.exceptions) -> 'Response':
     return render_template('base.html', context=500)
 
 
 @app.before_request
-def before_request():
+def before_request() -> None:
     """Open connection to db before any request. From Peewee docs"""
-    database.db.connect()
+    database.db.connect(reuse_if_open=True)
 
 
 @app.teardown_request
-def _db_close(exc):
+def _db_close(exc) -> None:
     """Close connection to db after request. From Peewee docs"""
     if not database.db.is_closed():
         database.db.close()
@@ -109,15 +116,6 @@ if __name__ == '__main__':
         Driver.build_report()
         database.delete_old_db_file(verbose=args.verbose)
         database.create_db_tables()
-        Driver.save_teams_to_db(db=database.db, team_table=database.Team, verbose=args.verbose)
-        Driver.save_drivers_to_db(
-            db=database.db, driver_table=database.Driver, team_table=database.Team, verbose=args.verbose)
-
-    # q = database.Driver.get_or_none(database.Driver.name.contains('ham'))
-    # for d in q:
-    #     print(d.name, d.team.name, d.best_lap)
-    # print(q.name)
-    # print(dir(q))
-    # print(type(q))
-
+        Driver.save_teams_to_db(database.Team, verbose=args.verbose)
+        Driver.save_drivers_to_db(database.Driver, database.Team, verbose=args.verbose)
     app.run()

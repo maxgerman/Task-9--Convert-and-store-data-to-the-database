@@ -1,3 +1,7 @@
+"""
+This module defines flask_restful API resources and adds custom representation for xml (json is standard)
+"""
+
 from flask import make_response, request
 from flask_restful import Resource, Api
 from flask_restful.representations.json import output_json
@@ -121,7 +125,7 @@ class DriversListApi(Resource):
 
 
 class DriverApi(Resource):
-    def get(self, driver_id):
+    def get(self, driver_id: str) -> dict:
         """Return the info about one particular driver API.
 
          ---
@@ -180,7 +184,6 @@ class ReportApi(Resource):
         request.environ['HTTP_ACCEPT'] = 'application/xml' if request.args.get(
             'format') == 'xml' else 'application/json'
 
-        asc_order = True
         report_dic = {'report': {}}
         drivers = Driver.all()
         drivers.sort(key=lambda d: d.best_lap)

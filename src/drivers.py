@@ -1,6 +1,15 @@
+"""
+This module contains Driver class which parses data files, represents driver objects as instances of the class,
+builds the database and reads from it.
+
+Relies on database.py module with peewee models.
+Contains constants for data file names and path.
+"""
+
 import os
 import datetime as dt
 import peewee
+from peewee import ModelSelect
 import src.database as database
 
 DATA_PATH = '../data'
@@ -66,7 +75,8 @@ class Driver:
         return f'Driver ({self.__dict__})'
 
     @staticmethod
-    def statistics(query_set) -> str:
+    def statistics(query_set: ModelSelect) -> str:
+        """Return pretty string with info about driver. Query_set is a row from a Driver table"""
         return '{:<20} | {:<25} | {}'.format(query_set.name, query_set.team.name, query_set.best_lap[:-3])
 
     @staticmethod
@@ -124,17 +134,13 @@ class Driver:
         return drivers
 
     @staticmethod
-    def print_report(asc: bool = True, driver_query: str = None) -> list:
+    def print_report(asc: bool = True) -> list:
         """
         Pretty print the report of drivers statistics.
         Sorted by best lap time.
-        Optionally, search for only one driver by name or abbr.
-
 
         Parameters:
-        drivers - list of drivers built by 'build_report' function.
         asc - ascending order if True
-        driver_query - if set, print the report of this only driver
         """
 
         drivers_qs = database.Driver.select().join(database.Team).order_by(database.Driver.best_lap)
@@ -146,7 +152,8 @@ class Driver:
         return res_table
 
     @staticmethod
-    def create_driver_from_queryset(driver_query_set):
+    def create_driver_from_queryset(driver_query_set: ModelSelect) -> 'Driver':
+        """Create driver object from the Driver model queryset"""
         return Driver(abbr=driver_query_set.abbr,
                       name=driver_query_set.name,
                       team=driver_query_set.team.name,
@@ -157,9 +164,7 @@ class Driver:
 
     @staticmethod
     def all(asc=True) -> list:
-        """Return the list of drivers in asc/desc order"""
-        # Driver._driver_list.sort(key=lambda d: d.name, reverse=not asc)
-        # return Driver._driver_list
+        """Return the list of drivers objects taken from db in asc/desc order"""
         driver_list = []
         if asc:
             query = database.Driver.select().join(database.Team).order_by(database.Driver.name)
@@ -172,14 +177,8 @@ class Driver:
         return driver_list
 
     @staticmethod
-    def get_by_id(driver_id) -> list:
+    def get_by_id(driver_id: str) -> list:
         """Return the list with driver object by id or name. Return empty list if not found"""
-
-        # for d in Driver._driver_list:
-        #     if driver_id.lower() in d.name.lower() or driver_id.lower() in d.abbr.lower():
-        #         return [d]
-        # else:
-        #     return []
         try:
             driver_qs = database.Driver.select().join(database.Team).where(
                 database.Driver.abbr.contains(driver_id) | database.Driver.name.contains(driver_id)
@@ -189,7 +188,7 @@ class Driver:
             return []
         return [driver]
 
-    def driver_info_dictionary(self):
+    def driver_info_dictionary(self) -> dict:
         """Return the driver info as a dictionary. Used for api"""
         return {
             'name': self.name,
@@ -201,28 +200,25 @@ class Driver:
         }
 
     @staticmethod
-    def save_teams_to_db(db, team_table: peewee.Model, verbose=False):
-        """Save team names to a dedicated teams table"""
+    def save_teams_to_db(team_table: 'Team', verbose=False) -> None:
+        """Save team names to a dedicated teams table in database"""
         if not Driver._driver_list:
             raise ValueError('Nothing to save to db. First parse the datafiles.')
 
         print('Rebuilding database...')
-        db.connect()
-        # save unique teams first
         for d in Driver._driver_list:
             try:
                 if verbose:
                     print(f'Saving team {d.team}...')
-                team_table.create(name=d.team).save()
+                team_table.create(name=d.team)
             except peewee.IntegrityError:
                 if verbose:
                     print(f'Team {d.team} is already in db')
-        db.close()
         if verbose:
             print(f'{team_table.select().count()} teams saved to database.')
 
     @staticmethod
-    def save_drivers_to_db(db, driver_table: peewee.Model, team_table: peewee.Model, verbose=False):
+    def save_drivers_to_db(driver_table: 'Driver', team_table: 'Team', verbose=False) -> None:
         """Save parsed drivers' detail to database and clean in-memory list of drivers.
 
         Teams table must be populated beforehand"""
@@ -232,7 +228,6 @@ class Driver:
         if not team_table.select().count() > 0:
             raise ValueError('Team table must be populated before Driver table')
 
-        db.connect(reuse_if_open=True)
         for d in Driver._driver_list:
             try:
                 if verbose:
@@ -243,13 +238,11 @@ class Driver:
                                     start_time=d.start_time,
                                     stop_time=d.stop_time,
                                     best_lap=d.best_lap
-                                    ).save()
+                                    )
                 if verbose:
                     print(f'Driver details of {d.name} saved to database')
             except peewee.IntegrityError:
                 print(f'Error during saving driver {d.name} to db')
-            finally:
-                db.close()
         Driver._driver_list = []
         if verbose:
             print(f'{driver_table.select().count()} drivers saved to database')
